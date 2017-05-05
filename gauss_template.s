@@ -4,12 +4,12 @@ start:
 		la	$a0, matrix_24x24		# a0 = A (base address of matrix)
 		li	$a1, 24    		    # a1 = N (number of elements per row)
 									# <debug>
-		jal 	print_matrix	    # print matrix before elimination
-		nop							# </debug>
+		#jal 	print_matrix	    # print matrix before elimination
+		#nop							# </debug>
 		jal 	eliminate			# triangularize matrix!
 		nop							# <debug>
-		jal 	print_matrix		# print matrix after elimination
-		nop							# </debug>
+		#jal 	print_matrix		# print matrix after elimination
+		#nop							# </debug>
 		jal 	exit
 
 exit:
@@ -26,64 +26,67 @@ eliminate:
 		# If necessary, create stack frame, and save return address from ra
 		addiu	$sp, $sp, -4		# allocate stack frame
 		sw	$ra, 0($sp)		# done saving registers
-		
+
 		##
 		## Implement eliminate here
-		#mtc1	$zero, $f5		# f5 = 0
-		#cvt.s.w	$f5, $f5		# convert to floating
+
+
+		# Initialize some registers
 		addiu	$t4, $zero, 1		# t4 = 1
 		mtc1	$t4, $f4		# f4 = t4 = 1.0
 		cvt.s.w	$f4, $f4		# convert to floating
+		addiu $s1, $a0, 0	# Initialize s1 as A[k][k] pointer
 		# K-loop
 		addiu	$t0, $zero, 0		# initialize k
 kloop:		slt 	$t4, $t0, $a1		# branch if k >= N
 		beq	$t4, $zero, subrdone	
+		addiu $s2, $s1, 4	# s2 points to A[k][j]
 		# First J-loop		
 		addiu	$t1, $t0, 1		# initialize j = k + 1
-		addiu	$a2, $t0, 0		# a2 = k
-		jal	getelem			# Get A[k][k]
-		addiu	$a3, $t0, 0		# a3 = k
-		add.s	$f1, $f0, $f5		# Store A[k][k] in f1 
-		addiu	$t3, $v0, 0		# Store address to A[k][k] in t3
+		lwc1	$f1, ($s1)	# f1 = A[k][k]
 jloop:		slt	$t4, $t1, $a1		# branch if j >= N
 		beq	$t4, $zero, jdone	
-		jal	getelem			# Get A[k][j]
-		addiu	$a3, $t1, 0		# a3 = j
+		lwc1	$f0, ($s2)	# f0 = A[k][j]
 		div.s 	$f0, $f0, $f1		# A[k][j] = A[k][j] / A[k][k]
-		swc1  	$f0, 0($v0)		# Store result at address of A[k][j]
+		swc1  	$f0, 0($s2)		# Store result at address of A[k][j]
+		addiu	$s2, $s2, 4	# s2 now points to A[k][j+1]
 		j	jloop			# Return to start of J-loop
 		addiu	$t1, $t1, 1		# j++
 		
-jdone:		swc1	$f4, 0($t3)		# Store f4 at A[k][k]
+jdone:		swc1	$f4, 0($s1)		# Store f4 at A[k][k]
 
 		# I-loop
 		addiu	$t2, $t0, 1		# initialize i = k + 1
+		addiu 	$s4, $s1, 96	# s4 points to A[i][k] 
+		addiu	$s6, $s1, 100	# s6 is a second pointer to keep track of the column in s5
 iloop:		slt	$t4, $t2, $a1		# branch if i >= N
 		beq	$t4, $zero, idone	
-		addiu	$a2, $t2, 0		# a2 = i
-		jal	getelem
-		addiu	$a3, $t0, 0		# a3 = k
-		add.s	$f2, $f0, $f5		# f2 = value of A[i][k]	
-		swc1	$f5, 0($v0)		# A[i][k] = 0
+		lwc1	$f2, ($s4)	# f2 = A[i][k]
+		swc1	$f5, 0($s4)		# A[i][k] = 0
 		# Inner J-loop
 		addiu	$t1, $t0, 1		# initialize j = k + 1
+		addiu	$s3, $s1, 4	# s3 points to A[k][j] (2)
+		addiu	$s5, $s6, 0	# s5 points to A[i][j]
 innerj:		slt	$t4, $t1, $a1		# branch if j >= N
 		beq	$t4, $zero, innerjdone
-		addiu	$a2, $t0, 0		# a2 = k
-		jal	getelem			# Get A[k][j]
-		addiu	$a3, $t1, 0		# a3 = j
-		add.s	$f3, $f0, $f5		# f3 = A[k][j]
-		jal	getelem			# Get A[i][j]
-		addiu	$a2, $t2, 0		# a2 = i
-mulj:		mul.s	$f1, $f2, $f3		# f1 = A[i][k] * A[k][j]
+		lwc1	$f3, ($s3)	# f3 = A[k][j] (2)
+		lwc1	$f0, ($s5)	# f0 = A[i][j]
+		mul.s	$f1, $f2, $f3		# f1 = A[i][k] * A[k][j]
 		sub.s	$f0, $f0, $f1		# f0 = A[i][j] - f1
-		swc1	$f0, 0($v0)		# Store result at address of A[i][j]
+		swc1	$f0, 0($s5)		# Store result at address of A[i][j]
+		addiu	$s3, $s3, 4	# s3 now points to A[k][j+1] (2)
+		addiu	$s5, $s5, 4	# s5 now points to A[i][j+1]
 		j	innerj			# Return to start of inner J-loop
 		addiu	$t1, $t1, 1		# j++
-innerjdone:	j	iloop			# Return to start of I-loop
+innerjdone:		
+		addiu	$s4, $s4, 96	# s4 now points to A[i+1][k]
+		addiu	$s6, $s6, 96	# s6 now points to A[i+1][j+1]
+		j	iloop			# Return to start of I-loop
 		addiu	$t2, $t2, 1		# i++
 	
-idone:		j	kloop			# Return to start of K-loop
+idone:	
+		addiu	$s1, $s1, 100 # s1 now points to A[k+1][k+1]
+		j	kloop			# Return to start of K-loop
 		addiu	$t0, $t0, 1		# k++																																														
 		## 
 
