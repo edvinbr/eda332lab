@@ -1,8 +1,8 @@
 ### Text segment
 		.text
 start:
-		la	$a0, matrix_4x4		# a0 = A (base address of matrix)
-		li	$a1, 4    		    # a1 = N (number of elements per row)
+		la	$a0, matrix_24x24		# a0 = A (base address of matrix)
+		li	$a1, 24    		    # a1 = N (number of elements per row)
 									# <debug>
 		jal 	print_matrix	    # print matrix before elimination
 		nop							# </debug>
@@ -42,18 +42,18 @@ eliminate:
         addiu   $s4, $a0, 0     # Now we have address to A[k][k] in v1
 
         #Calculate address to A[i][j]
-		#multu   $t0, $s0
-		#mflo    $s1
-		#addu    $s1, $s1, $a0
-		#addiu   $s5, $s1, 4    #Will be optimized once everything is done (fixed 24 matrix)        
+		multu   $t4, $s0
+		mflo    $s1
+		addu    $s1, $s1, $a0
+		addiu   $s5, $s1, 4    #Will be optimized once everything is done (fixed 24 matrix)        
 
         #Calculate address to A[i][k]
-        #multu   $t0, $s0
-		#mflo    $s1
-		#addu    $s6, $s1, $a0  #Will be optimized once everything is done (fixed 24 matrix)   
+        multu   $t0, $s0
+		mflo    $s1
+		addu    $s6, $s1, $a0  #Will be optimized once everything is done (fixed 24 matrix)   
      
 		#Calculate address to A[k][j] (2)
-		#addiu   $s7, $s3, 0
+		addiu   $s7, $s3, 0
 
 		#Initialize k
 		addiu	$t0, $zero, 0
@@ -64,7 +64,7 @@ kloop:	slt 	$t4, $t0, $a1		# branch if k >= N
 		addiu	$t1, $t0, 1		# initialize j = k + 1
         lwc1	$f1, 0($s4)	    # contents of A[k][k] in f1
 jloop:	slt	    $t4, $t1, $a1	# branch if j >= N
-		beq	    $t4, $zero, jdone	
+		beq	    $t4, $zero, jdone
 		lwc1    $f0, 0($s3)
 		div.s 	$f0, $f0, $f1   # A[k][j] = A[k][j] / A[k][k]
 		swc1  	$f0, 0($s3)		# Store result at address of A[k][j]
@@ -72,35 +72,35 @@ jloop:	slt	    $t4, $t1, $a1	# branch if j >= N
 		j   jloop		        # Return to start of J-loop
 		addiu	$t1, $t1, 1		# j++
 jdone:	swc1	$f4, 0($s4)		# Store f4 at A[k][k]
-        addiu   $s4, $s4, 20    # Offset to A[k+1][k+1]                   EDIT FOR 24 MATRIX!!!
+       # addiu   $s4, $s4, 20    # Offset to A[k+1][k+1]                   EDIT FOR 24 MATRIX!!!
+        addiu   $s4, $s4, 100    # Offset to A[k+1][k+1]
 		# I-loop
 		addiu	$t2, $t0, 1		# initialize i = k + 1
-iloop:	slt	$t4, $t2, $a1		# branch if i >= N
-		beq	$t4, $zero, idone	
-		addiu	$a2, $t2, 0		# a2 = i
-		jal	getelem
-		addiu	$a3, $t0, 0		# a3 = k
-		add.s	$f2, $f0, $f5		# f2 = value of A[i][k]	
-		swc1	$f5, 0($v0)		# A[i][k] = 0
+iloop:	slt	    $t4, $t2, $a1		# branch if i >= N
+		beq	    $t4, $zero, idone	
+		lwc1    $f2, 0($s6)      # Loading value of A[k][j]
+		swc1	$f5, 0($s6)		 # A[i][k] = 0
 		# Inner J-loop
 		addiu	$t1, $t0, 1		# initialize j = k + 1
-innerj:		slt	$t4, $t1, $a1		# branch if j >= N
-		beq	$t4, $zero, innerjdone
-		addiu	$a2, $t0, 0		# a2 = k
-		jal	getelem			# Get A[k][j]
-		addiu	$a3, $t1, 0		# a3 = j
-		add.s	$f3, $f0, $f5		# f3 = A[k][j]
-		jal	getelem			# Get A[i][j]
-		addiu	$a2, $t2, 0		# a2 = i
-mulj:		mul.s	$f1, $f2, $f3		# f1 = A[i][k] * A[k][j]
+innerj:	slt	$t4, $t1, $a1   # branch if j >= N
+		beq		$t4, $zero, innerjdone	
+		lwc1	$f3, 0($s7)     # f3 = A[k][j]
+		mul.s	$f1, $f2, $f3		# f1 = A[i][k] * A[k][j]
+		lwc1    $f0, 0($s5)
 		sub.s	$f0, $f0, $f1		# f0 = A[i][j] - f1
-		swc1	$f0, 0($v0)		# Store result at address of A[i][j]
+		swc1	$f0, 0($s5)		# Store result at address of A[i][j]
+		addiu   $s6, $s6, 4 # A[i][k+1]
+		addiu   $s5, $s5, 4 # A[i][j+1]
 		j	innerj			# Return to start of inner J-loop
-		addiu	$t1, $t1, 1		# j++
-innerjdone:	j	iloop			# Return to start of I-loop
-		addiu	$t2, $t2, 1		# i++
+		addiu	$t1, $t1, 1		 # j++
+innerjdone:	addiu   $s5, $s5, 4 # A[i+1][j]
+		#	addiu   $s7, $s7, 16 #A[i+1][k]                                     EDIT FOR MATRIX
+			addiu   $s7, $s7, 96 #A[i+1][k]   
+			j	iloop			 # Return to start of I-loop
+			addiu	$t2, $t2, 1		# i++
 	
-idone:		j	kloop			# Return to start of K-loop
+idone:  addiu   $s3, $s3, 4     # Offset to A[k][j+1]  
+        j	kloop			# Return to start of K-loop
 		addiu	$t0, $t0, 1		# k++																																														
 		## 
 
