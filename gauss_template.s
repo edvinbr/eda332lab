@@ -4,12 +4,12 @@ start:
 		la	$a0, matrix_24x24		# a0 = A (base address of matrix)
 		li	$a1, 24    		    # a1 = N (number of elements per row)
 									# <debug>
-		#jal 	print_matrix	    # print matrix before elimination
-		#nop							# </debug>
+		jal 	print_matrix	    # print matrix before elimination
+		nop							# </debug>
 		jal 	eliminate			# triangularize matrix!
 		nop							# <debug>
-		#jal 	print_matrix		# print matrix after elimination
-		#nop							# </debug>
+		jal 	print_matrix		# print matrix after elimination
+		nop							# </debug>
 		jal 	exit
 
 exit:
@@ -33,8 +33,8 @@ eliminate:
 
 		# Initialize some registers
 		addiu	$t4, $zero, 1	# t4 = 1
-		mtc1	$t4, $f4		# f4 = t4 = 1.0
-		cvt.s.w	$f4, $f4		# convert to floating
+		mtc1	$t4, $f3		# f3 = t4 = 1.0
+		cvt.s.w	$f3, $f3		# convert to floating
 		addiu $s1, $a0, 0		# Initialize s1 as A[k][k] pointer
 		# K-loop
 		addiu	$t0, $zero, 0	# initialize k
@@ -43,13 +43,11 @@ kloop:	slt 	$t4, $t0, $a1	# branch if k >= N
 		addiu $s2, $s1, 4		# s2 points to A[k][j]
 		# First J-loop
 		addiu	$t1, $t0, 1		# initialize j = k + 1
-		lwc1	$f2, ($s1)		# f1 = A[k][k]
-		div.s 	$f2, $f4, $f2	# A[k][j] = A[k][j] / A[k][k]
+		lwc1	$f2, ($s1)		# f2 = A[k][k]
+		div.s 	$f2, $f3, $f2	# f2 = 1 / A[k][k]
 jloop2:	andi    $t2, $s2, 7
 		beq     $t2, 0, jloop 
 		lwc1	$f0, ($s2)		# f0 = A[k][j], f1 = A[k][j+1]
-		andi    $t3, $t1, 1
-		beq     $t3, 0, jloop
 		mul.s   $f0, $f0, $f2
 		swc1    $f0, 0($s2)
 		addiu	$s2, $s2, 4		# s2 now points to A[k][j+1]
@@ -65,7 +63,7 @@ jloop:	slt	$t4, $t1, $a1		# branch if j >= N
 		j	jloop2				# Return to start of J-loop
 		addiu	$t1, $t1, 2		# j++
 		
-jdone:	swc1	$f4, 0($s1)		# Store f4 at A[k][k]
+jdone:	swc1	$f3, 0($s1)		# A[k][k] = 1
 
 		# I-loop
 		addiu	$t2, $t0, 1		# initialize i = k + 1
@@ -79,9 +77,9 @@ iloop:	slt	$t4, $t2, $a1		# branch if i >= N
 		addiu	$t1, $t0, 1		# initialize j = k + 1
 		addiu	$s3, $s1, 4		# s3 points to A[k][j] (2)
 		addiu	$s5, $s6, 0		# s5 points to A[i][j]
-innerj2:andi    $t2, $s3, 7
-		beq     $t2, 0, innerj
-		lwc1	$f4, ($s3)	    # f3 = A[k][j] (2)
+innerj2:andi    $t5, $s3, 7
+		beq     $t5, 0, innerj
+		lwc1	$f4, ($s3)	    # f4 = A[k][j] (2)
 		lwc1	$f0, ($s5)	    # f0 = A[i][j]
 		mul.s	$f6, $f2, $f4	# f5 = A[i][k] * A[k][j]
 		sub.s	$f0, $f0, $f6	# f0 = A[i][j] - f5
@@ -91,12 +89,12 @@ innerj2:andi    $t2, $s3, 7
 		addiu	$t1, $t1, 1		# j++
 innerj:	slt	$t4, $t1, $a1		# branch if j >= N
 		beq	$t4, $zero, innerjdone
-		ldc1	$f4, ($s3)	    # f3 = A[k][j] (2)
+		ldc1	$f4, ($s3)	    # f4 = A[k][j] (2)
 		ldc1	$f0, ($s5)	    # f0 = A[i][j]
-		mul.s	$f6, $f2, $f4	# f5 = A[i][k] * A[k][j]
-		sub.s	$f0, $f0, $f6	# f0 = A[i][j] - f5
-		mul.s	$f6, $f2, $f5	# f5 = A[i][k] * A[k][j+1]
-		sub.s	$f1, $f1, $f6	# f0 = A[i][j+1] - f5
+		mul.s	$f6, $f2, $f4	# f6 = A[i][k] * A[k][j]
+		sub.s	$f0, $f0, $f6	# f0 = A[i][j] - f6
+		mul.s	$f6, $f2, $f5	# f6 = A[i][k] * A[k][j+1]
+		sub.s	$f1, $f1, $f6	# f1 = A[i][j+1] - f6
 		swc1	$f0, 0($s5)		# Store result at address of A[i][j]
 		swc1	$f1, 4($s5)		# Store result at address of A[i][j+1]
 		addiu	$s3, $s3, 8	    # s3 now points to A[k][j+2] (2)
