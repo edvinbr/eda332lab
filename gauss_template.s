@@ -4,12 +4,12 @@ start:
 		la	$a0, matrix_24x24		# a0 = A (base address of matrix)
 		li	$a1, 24    		    # a1 = N (number of elements per row)
 									# <debug>
-		#jal 	print_matrix	    # print matrix before elimination
-		#nop							# </debug>
+		jal 	print_matrix	    # print matrix before elimination
+		nop							# </debug>
 		jal 	eliminate			# triangularize matrix!
 		nop							# <debug>
-		#jal 	print_matrix		# print matrix after elimination
-		#nop							# </debug>
+		jal 	print_matrix		# print matrix after elimination
+		nop							# </debug>
 		jal 	exit
 
 exit:
@@ -29,10 +29,11 @@ eliminate:
 
 		##
 		## Implement eliminate here
-		addiu	$t0, $zero, 0	# Dummy instruction to align memory for cache
-
+		j lll	# Dummy instruction to align memory for cache
+		addiu	$t0, $zero, 0
+		addiu	$t0, $zero, 0
 		# Initialize some registers
-		addiu	$t4, $zero, 1	# t4 = 1
+lll:	addiu	$t4, $zero, 1	# t4 = 1
 		mtc1	$t4, $f10		# f10 = t4 = 1.0
 		cvt.s.w	$f10, $f10		# convert to floating
 		addiu $s1, $a0, 0		# Initialize s1 as A[k][k] pointer
@@ -95,7 +96,6 @@ innerj:	slt	$t4, $t1, $a1		# branch if j >= N
 		mul.s	$f6, $f2, $f5	# f6 = A[i][k] * A[k][j+1]
 		sub.s	$f1, $f1, $f6	# f1 = A[i][j+1] - f6
 		sdc1	$f0, 0($s5)		# Store result at address of A[i][j], A[i][j+1]
-		#swc1	$f1, 4($s5)		# Store result at address of A[i][j+1]
 		addiu	$s5, $s5, 8	    # s5 now points to A[i][j+2]
 		j	innerj			    # Return to start of inner J-loop
 		addiu	$t1, $t1, 2		# j+2
