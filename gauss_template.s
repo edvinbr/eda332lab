@@ -48,36 +48,36 @@ kloop:	slt 	$t4, $t0, $a1	# branch if k >= N
 jloop2:	andi    $t2, $s2, 7
 		beq     $t2, $zero, jloop 
 		lwc1	$f0, ($s2)		# f0 = A[k][j], f1 = A[k][j+1]
-		mul.s   $f0, $f0, $f2
-		swc1    $f0, 0($s2)
 		addiu	$s2, $s2, 4		# s2 now points to A[k][j+1]
+		mul.s   $f0, $f0, $f2
+		swc1    $f0, -4($s2)
 		addiu	$t1, $t1, 1		# j++
 jloop:	slt	$t4, $t1, $a1		# branch if j >= N
 		beq	$t4, $zero, jdone	
 		ldc1	$f0, ($s2)		# f0 = A[k][j], f1 = A[k][j+1]
-		mul.s   $f0, $f0, $f2
-		swc1  	$f0, 0($s2)		# Store result at address of A[k][j]
-		mul.s   $f1, $f1, $f2
-		swc1  	$f1, 4($s2)		# Store result at address of A[k][j+1]
 		addiu	$s2, $s2, 8		# s2 now points to A[k][j+2]
+		mul.s   $f0, $f0, $f2
+		swc1  	$f0, -8($s2)		# Store result at address of A[k][j]
+		mul.s   $f1, $f1, $f2
+		swc1  	$f1, -4($s2)		# Store result at address of A[k][j+1]
 		j	jloop				# Return to start of J-loop
-		addiu	$t1, $t1, 2		# j++
+		addiu	$t1, $t1, 2		# j+2
 jdone:	swc1	$f10, 0($s1)		# A[k][k] = 1
 		# I-loop
 		addiu	$t2, $t0, 1		# initialize i = k + 1
 		addiu 	$s4, $s1, 96	# s4 points to A[i][k] 
 		addiu	$s6, $s1, 100	# s6 is a second pointer to keep track of the column in s5
 iloop:	slt	$t4, $t2, $a1		# branch if i >= N
+		addiu	$t1, $t0, 1		# initialize j = k + 1
 		beq	$t4, $zero, idone	
 		lwc1	$f2, ($s4)	    # f2 = A[i][k]
 		swc1	$f31, 0($s4)		# A[i][k] = 0
 		# Inner J-loop
-		addiu	$t1, $t0, 1		# initialize j = k + 1
 		addiu	$s3, $s1, 4		# s3 points to A[k][j] (2)
 		addiu	$s5, $s6, 0		# s5 points to A[i][j]
 innerj2:andi    $t5, $s3, 7
 		beq     $t5, $zero, innerj
-		lwc1	$f4, ($s3)	    # f4 = A[k][j] (2)
+		lwc1	$f4, 0($s3)	    # f4 = A[k][j] (2)
 		lwc1	$f0, ($s5)	    # f0 = A[i][j]
 		mul.s	$f6, $f2, $f4	# f6 = A[i][k] * A[k][j]
 		sub.s	$f0, $f0, $f6	# f0 = A[i][j] - f6
@@ -86,19 +86,19 @@ innerj2:andi    $t5, $s3, 7
 		addiu	$s5, $s5, 4	    # s5 now points to A[i][j+1]
 		addiu	$t1, $t1, 1		# j++
 innerj:	slt	$t4, $t1, $a1		# branch if j >= N
+		addiu	$s3, $s3, 8	    # s3 now points to A[k][j+2] (2)
 		beq	$t4, $zero, innerjdone
-		ldc1	$f4, ($s3)	    # f4 = A[k][j] (2)
-		ldc1	$f0, ($s5)	    # f0 = A[i][j]
+		ldc1	$f4, -8($s3)	    # f4 = A[k][j] (2)
+		ldc1	$f0, ($s5)	    # f0 = A[i][j]s
 		mul.s	$f6, $f2, $f4	# f6 = A[i][k] * A[k][j]
 		sub.s	$f0, $f0, $f6	# f0 = A[i][j] - f6
 		mul.s	$f6, $f2, $f5	# f6 = A[i][k] * A[k][j+1]
 		sub.s	$f1, $f1, $f6	# f1 = A[i][j+1] - f6
 		sdc1	$f0, 0($s5)		# Store result at address of A[i][j], A[i][j+1]
 		#swc1	$f1, 4($s5)		# Store result at address of A[i][j+1]
-		addiu	$s3, $s3, 8	    # s3 now points to A[k][j+2] (2)
 		addiu	$s5, $s5, 8	    # s5 now points to A[i][j+2]
 		j	innerj			    # Return to start of inner J-loop
-		addiu	$t1, $t1, 2		# j++
+		addiu	$t1, $t1, 2		# j+2
 innerjdone:		
 		addiu	$s4, $s4, 96	# s4 now points to A[i+1][k]
 		addiu	$s6, $s6, 96	# s6 now points to A[i+1][j]
