@@ -37,9 +37,8 @@ kloop:	slt  $t4, $t0, $a1		# branch if k >= N
 		addiu $s2, $s1, 4		# s2 points to A[k][j]
 		beq	$t4, $zero, subdone	
 		# First J-loop
-		addiu	$t1, $t0, 1		# initialize j = k + 1
 		lwc1	$f2, ($s1)		# f2 = A[k][k]
-		addiu	$s6, $s1, 100	# s6 is a second pointer to keep track of the column in s5
+		addiu	$t1, $t0, 1		# initialize j = k + 1
 		div.s 	$f2, $f10, $f2	# f2 = 1 / A[k][k]
 jloop2:	andi    $t2, $s2, 7
 		addiu 	$s4, $s1, 96	# s4 points to A[i][k] 
@@ -68,7 +67,7 @@ iloop:	slt	$t4, $t2, $a1		# branch if i >= N
 		swc1	$f31, 0($s4)	# A[i][k] = 0
 		# Inner J-loop
 		addiu	$s3, $s1, 4		# s3 points to A[k][j] (2)
-		addiu	$s5, $s6, 0		# s5 points to A[i][j]
+		addiu	$s5, $s4, 4		# s5 points to A[i][j]
 innerj2:andi    $t5, $s3, 7
 		addiu	$t2, $t2, 1		# i++
 		beq     $t5, $zero, innerj
@@ -93,9 +92,8 @@ innerj:	slt	$t4, $t1, $a1		# branch if j >= N
 		addiu	$s5, $s5, 8	    # s5 now points to A[i][j+2]
 		j	innerj			    # Return to start of inner J-loop
 		addiu	$t1, $t1, 2		# j+2
-indone:	addiu	$s4, $s4, 96	# s4 now points to A[i+1][k]
-		j	iloop			    # Return to start of I-loop
-		addiu	$s6, $s6, 96	# s6 now points to A[i+1][j]
+indone:	j	iloop			    # Return to start of I-loop
+		addiu	$s4, $s4, 96	# s4 now points to A[i+1][k]
 idone:	addiu	$s1, $s1, 100 # s1 now points to A[k+2][k+2]
 		j	kloop			  # Return to start of K-loop																																														
 		addiu	$t0, $t0, 1	  # k+2	
