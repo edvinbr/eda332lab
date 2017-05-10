@@ -33,7 +33,7 @@ eliminate:
 		cvt.s.w	$f10, $f10		# convert to floating
 		addiu $s1, $a0, 0		# Initialize s1 as A[k][k] pointer
 		# K-loop
-kloop:	slt 	$t4, $t0, $a1	# branch if k >= N
+kloop:	slt  $t4, $t0, $a1		# branch if k >= N
 		addiu $s2, $s1, 4		# s2 points to A[k][j]
 		beq	$t4, $zero, subdone	
 		# First J-loop
@@ -54,9 +54,8 @@ jloop:	slt	$t4, $t1, $a1		# branch if j >= N
 		beq	$t4, $zero, jdone	
 		addiu	$s2, $s2, 8		# s2 now points to A[k][j+2]
 		mul.s   $f0, $f0, $f2
-		swc1  	$f0, -8($s2)	# Store result at address of A[k][j]
 		mul.s   $f1, $f1, $f2
-		swc1  	$f1, -4($s2)	# Store result at address of A[k][j+1]
+		sdc1  	$f0, -8($s2)	# Store result at address of A[k][j] and A[k][j+1]
 		j	jloop				# Return to start of J-loop
 		addiu	$t1, $t1, 2		# j+2
 jdone:	swc1	$f10, 0($s1)	# A[k][k] = 1
@@ -84,7 +83,7 @@ innerj2:andi    $t5, $s3, 7
 innerj:	slt	$t4, $t1, $a1		# branch if j >= N
 		addiu	$s3, $s3, 8	    # s3 now points to A[k][j+2] (2)
 		beq	$t4, $zero, indone
-		ldc1	$f4, -8($s3)	    # f4 = A[k][j] (2)
+		ldc1	$f4, -8($s3)	# f4 = A[k][j] (2)
 		ldc1	$f0, ($s5)	    # f0 = A[i][j]s
 		mul.s	$f6, $f2, $f4	# f6 = A[i][k] * A[k][j]
 		sub.s	$f0, $f0, $f6	# f0 = A[i][j] - f6
@@ -100,9 +99,9 @@ indone:	addiu	$s4, $s4, 96	# s4 now points to A[i+1][k]
 idone:	addiu	$s1, $s1, 100 # s1 now points to A[k+2][k+2]
 		j	kloop			  # Return to start of K-loop																																														
 		addiu	$t0, $t0, 1	  # k+2	
-subdone:lw	$ra, 0($sp)		# done restoring registers
-		jr	$ra			# return from subroutine
-		addiu	$sp, $sp, 4		# remove stack frame
+subdone:lw	$ra, 0($sp)		  # done restoring registers
+		jr	$ra			      # return from subroutine
+		addiu	$sp, $sp, 4	  # remove stack frame
 
 ################################################################################
 # getelem - Get address and content of matrix element A[a][b].
