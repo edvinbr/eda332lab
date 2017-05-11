@@ -60,6 +60,8 @@ jloop:	slt	$t4, $t1, $a1		# branch if j >= N
 jdone:	swc1	$f10, 0($s1)	# A[k][k] = 1
 		# I-loop
 		addiu	$t2, $t0, 1		# initialize i = k + 1
+		
+		#addiu	$t7, $zero, 0	# dummy
 iloop:	slt	$t4, $t2, $a1		# branch if i >= N
 		addiu	$t1, $t0, 1		# initialize j = k + 1
 		beq		$t4, $zero, idone	
