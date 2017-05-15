@@ -26,16 +26,17 @@ eliminate:
 		## Implement eliminate here
 		addiu	$t0, $zero, 0 # Dummy instruction to align memory for cache
 		addiu	$t0, $zero, 0 # Dummy instruction to align memory for cache
-		addiu	$t0, $zero, 0 # Dummy instruction to align memory for cache
+		addi   $a2, $a1, -1
+		#subiu   $a3, $a1, 1 
 		# Initialize some registers
 		addiu	$t4, $zero, 1	# t4 = 1
 		mtc1	$t4, $f10		# f10 = t4 = 1.0
 		cvt.s.w	$f10, $f10		# convert to floating
 		addiu $s1, $a0, 0		# Initialize s1 as A[k][k] pointer
 		# K-loop
-kloop:	slt  $t4, $t0, $a1		# branch if k >= N
+kloop:	slt  $t4, $t0, $a2		# branch if k >= N
 		addiu $s2, $s1, 4		# s2 points to A[k][j]
-		beq	$t4, $zero, subdone	
+		beq	$t4, $zero, frow	
 		# First J-loop
 		lwc1	$f2, ($s1)		# f2 = A[k][k]
 		addiu	$t1, $t0, 1		# initialize j = k + 1
@@ -53,7 +54,7 @@ jloop:	slt		$t4, $t1, $a1		# branch if j >= N
 jdone:	swc1	$f10, 0($s1)	# A[k][k] = 1
 		# I-loop
 		addiu	$t2, $t0, 1		# initialize i = k + 1
-iloop:	slt	$t4, $t2, $a1		# branch if i >= N
+iloop:	slt	$t4, $t2, $a2		# branch if i >= N
 		addiu	$t1, $t0, 1		# initialize j = k + 1
 		beq		$t4, $zero, idone	
 		lwc1	$f2, ($s4)	    # f2 = A[i][k]
@@ -100,7 +101,14 @@ indone:	j	iloop			    # Return to start of I-loop
 idone:	addiu	$s1, $s1, 100 # s1 now points to A[k+2][k+2]
 		j	kloop			  # Return to start of K-loop																																														
 		addiu	$t0, $t0, 1	  # k+2	
-subdone:lw	$ra, 0($sp)		  # done restoring registers
+frow:	swc1    $f10, 0($s1)
+zeros:	beq     $a2, $zero, done
+		addi   $a2, $a2, -1
+
+		swc1    $f31, -4($s1)
+		j  zeros
+		addi   $s1, $s1, -4
+done:	lw	$ra, 0($sp)		  # done restoring registers
 		jr	$ra			      # return from subroutine
 		addiu	$sp, $sp, 4	  # remove stack frame
 
