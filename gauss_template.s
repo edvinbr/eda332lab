@@ -7,8 +7,8 @@ start:
 		#nop						# </debug>
 		jal 	eliminate			# triangularize matrix!
 		nop							# <debug>
-		#jal 	print_matrix		# print matrix after elimination
-		#nop						# </debug>
+		jal 	print_matrix		# print matrix after elimination
+		nop						# </debug>
 exit:
 		li   	$v0, 10          	# specify exit system call
       	syscall						# exit program
@@ -33,7 +33,7 @@ eliminate:
 		cvt.s.w	$f10, $f10	  # convert to floating
 		addiu $s1, $a0, 0	  # Initialize s1 as A[k][k] pointer
 		# K-loop
-kloop:	slt  $t4, $t0, $a2	  	# branch if k >= N
+kloop:	slt  $t4, $t0, $a2	  	# branch if k >= N-1
 		addiu $s2, $s1, 4	  	# s2 points to A[k][j]
 		beq	$t4, $zero, frow	
 		# First J-loop
@@ -46,14 +46,13 @@ jloop:	slt		$t4, $t1, $a1	# branch if j >= N
 		addiu	$s2, $s2, 4		# s2 now points to A[k][j+1]
 		mul.s   $f0, $f0, $f2   # f0 = A[k][j] / A[k][k];
 		swc1  	$f0, -4($s2)	# Store result at address of A[k][j]
-		addiu 	$s4, $s1, 96	# s4 points to A[i][k]
 		j	jloop				# Return to start of J-loop
 		addiu	$t1, $t1, 1		# j+1 
-		
 jdone:	swc1	$f10, 0($s1)	# A[k][k] = 1
 		# I-loop
+		addiu 	$s4, $s1, 96	# s4 points to A[i][k]
 		addiu	$t2, $t0, 1		# initialize i = k + 1
-iloop:	slt	$t4, $t2, $a2		# branch if i >= N
+iloop:	slt	$t4, $t2, $a2		# branch if i >= N-1
 		addiu	$t1, $t0, 1		# initialize j = k + 1
 		beq		$t4, $zero, idone	
 		lwc1	$f2, ($s4)	    # f2 = A[i][k]
